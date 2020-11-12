@@ -118,7 +118,15 @@ path_df =
   tibble(
   path = list.files("long_data")
   ) %>% 
-  mutate(path = str_c("long_data/", path))
+  mutate(path = str_c("long_data/", path),
+         path_expand = map(.x = path, ~read_csv(.x))
+  ) %>% 
+  unnest(path_expand) %>% 
+  mutate(
+    arm = if_else(str_detect(path, "con"), "control", "exp")
+  )
+  
+         
 
 
 read_csv(path_df$path[[1]])
