@@ -141,6 +141,7 @@ path_df %>%
   ggplot(aes(x = week, y = measurements, group = id_arm)) +
   geom_line(aes(color = id_arm))
 ```
+
 The experimental groups have higher measurements compared to the control groups. It also seems as though the measurements for the experimental groups are increasing over time while the measurements for the control groups remain steady over time.
 
 ## Problem 3
@@ -149,10 +150,12 @@ don't export mean and sd - export t test results for whether the mean is equal t
 
 plot estimate mean by true mean (filter for only results where p <0.05, then compute the mean )
 
+Simulating data
 ```{r}
 t_test  = function(samp_size = 30, mu, sigma = 5) {
       data = 
         tibble(
+          
           x = rnorm(n = samp_size, mean = mu, sd = sigma)
         )
       
@@ -168,25 +171,50 @@ data =
           mutate(
             output = map(.x = mu, ~ rerun(100, t_test(mu = .x))),
             results = map(output, bind_rows),
-            results_tidy = map(results, bind_rows)
+            true_mu = mu,
           ) %>% 
-          select(results_tidy) %>% 
-          unnest(results_tidy) %>% 
-          select(estimate, p.value)
+          select(results, true_mu) %>% 
+          unnest(results) %>% 
+          select(estimate, p.value, true_mu) %>% 
+          mutate(
+                decision = ifelse(p.value > 0.05, "fail_reject", "reject")
+          )
 
 
 ```
 
-
+Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
 ```{r}
-
-data1 = 
+plot1  = 
   data %>% 
-    mutate(
-        power = ifelse(p.value > 0.05, "fail_reject", "reject")
-    )
-    
-  
+  group_by(true_mu) %>% 
+  summarize(
+    decision_tot = n(),
+    decision_reject = sum(decision == "reject")
+  ) %>% 
+  mutate(
+    prop = map2(.x = decision_reject, .y = decision_tot, ~prop.test(x = .x, n = .y)),
+    prop_tidy = map(.x = prop, ~broom::tidy(.x))
+  ) %>% 
+  select(-prop) %>% 
+  unnest(prop_tidy) %>% 
+  select(true_mu, estimate) %>% 
+  rename(power = estimate)
+
 ```
+
+Plot 1
+```{r}
+plot1 %>% 
+  ggplot(aes(x = true_mu, y = power)) +
+  geom_line()
+
+```
+
+Make a plot showing the average estimate of μ^ on the y axis and the true value of μ on the x axis. Make a second plot (or overlay on the first) the average estimate of μ^ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis. Is the sample average of μ^ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
+
+
+
+
 
 
