@@ -134,18 +134,26 @@ path_df =
 #### Part 2
 
 Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
+Seperate id and arm and group by id 
 ```{r}
 path_df %>% 
+  separate(id_arm, c("arm", "id"), convert = TRUE) %>% 
   pivot_longer(
     week_1:week_8,
     names_to = "week",
     values_to = "measurements"
-  ) %>% 
-  ggplot(aes(x = week, y = measurements, group = id_arm)) +
-  geom_line(aes(color = id_arm))
+  ) %>%
+  group_by(id) %>% 
+  ggplot(aes(x = week, y = measurements, group = arm)) +
+    geom_smooth(aes(color = arm), se = FALSE) +
+  labs(
+    title = "Observations overtime by treatment group",
+    x = "Week",
+    y = "Measurements"
+  )
 ```
 
-The experimental groups have higher measurements compared to the control groups. It also seems as though the measurements for the experimental groups are increasing over time while the measurements for the control groups remain steady over time.
+The experimental groups have higher measurements compared to the control groups. It also seems as though the measurements for the experimental groups are increasing over time while the measurements for the control groups remain steady and decreasing a little over time.
 
 ## Problem 3
 
@@ -170,7 +178,7 @@ data =
       mu = c(0, 1, 2, 3, 4, 5, 6)
     ) %>% 
           mutate(
-            output = map(.x = mu, ~ rerun(100, t_test(mu = .x))),
+            output = map(.x = mu, ~ rerun(5000, t_test(mu = .x))),
             results = map(output, bind_rows),
             true_mu = mu,
           ) %>% 
@@ -279,5 +287,5 @@ combined %>%
   )
 ```
 
-The average estimated my across tests where the null hypothesis was rejected did not equal the true value of mu until the true value approached approximately 4. When the true mu was less than 4, the estimated mu was larger among the rejected tests was larger than the estimated mu among all tests (except when the true mu was 0, there were some estimated means in the rejected tests that were below the true mu value). 
+The average estimated my across tests where the null hypothesis was rejected did not equal the true value of mu until the true value approached approximately 4. When the true mu was less than 4, the estimated mu was larger among the rejected tests was larger than the estimated mu among all tests (except when the true mu was 0). Therefore, we can see when we only include those tests which were rejected, the estimated mu is not close to the true mu. 
 
